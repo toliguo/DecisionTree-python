@@ -1,5 +1,7 @@
 # Decision Tree
 
+Python 3.10.12
+
 ### 依赖安装
 ```shell
 pip install pandas
