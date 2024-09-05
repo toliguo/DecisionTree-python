@@ -2,11 +2,8 @@
 
 from math import log
 import operator
-
 from collections import Counter
-
-pre_pruning = True
-post_pruning = True
+import random
 
 import matplotlib.pyplot as plt
 from pylab import mpl
@@ -180,7 +177,7 @@ def splitdataset(dataset, axis, value):
 '''
 选择最好的数据集划分方式
 ID3算法:以信息增益为准则选择划分属性
-C4.5算法：使用“增益率”来选择划分属性
+C4.5算法：使用"增益率"来选择划分属性
 '''
 
 
@@ -222,77 +219,83 @@ def majorityCnt(classList):
     return sortedClassCont[0][0]
 
 
-# 利用ID3算法创建决策树
-def ID3_createTree(dataset, labels, test_dataset):
+# New function for Random Forest
+def random_forest(dataset, labels, n_trees=10, sample_size=None, n_features=None):
+    forest = []
+    if sample_size is None:
+        sample_size = len(dataset) // 2
+    if n_features is None:
+        n_features = int(log(len(dataset[0]) - 1, 2)) + 1
+
+    for _ in range(n_trees):
+        # Bootstrap sampling
+        sampled_dataset = random.choices(dataset, k=sample_size)
+        sampled_labels = labels[:]
+        
+        # Create tree with random feature subset
+        tree = ID3_createTree(sampled_dataset, sampled_labels, n_features)
+        forest.append(tree)
+    
+    return forest
+
+# Modified ID3_createTree function
+def ID3_createTree(dataset, labels, n_features):
     classList = [example[-1] for example in dataset]
     if classList.count(classList[0]) == len(classList):
-        # 类别完全相同，停止划分
         return classList[0]
     if len(dataset[0]) == 1:
-        # 遍历完所有特征时返回出现次数最多的
         return majorityCnt(classList)
-    bestFeat = ID3_chooseBestFeatureToSplit(dataset)
+    
+    # Randomly select a subset of features
+    feature_indices = random.sample(range(len(dataset[0]) - 1), min(n_features, len(dataset[0]) - 1))
+    
+    bestFeat = ID3_chooseBestFeatureToSplit(dataset, feature_indices)
     bestFeatLabel = labels[bestFeat]
-    print(u"此时最优索引为：" + (bestFeatLabel))
 
     ID3Tree = {bestFeatLabel: {}}
     del (labels[bestFeat])
-    # 得到列表包括节点所有的属性值
     featValues = [example[bestFeat] for example in dataset]
     uniqueVals = set(featValues)
-
-    if pre_pruning:
-        ans = []
-        for index in range(len(test_dataset)):
-            ans.append(test_dataset[index][-1])
-        result_counter = Counter()
-        for vec in dataset:
-            result_counter[vec[-1]] += 1
-        leaf_output = result_counter.most_common(1)[0][0]
-        root_acc = cal_acc(test_output=[leaf_output] * len(test_dataset), label=ans)
-        outputs = []
-        ans = []
-        for value in uniqueVals:
-            cut_testset = splitdataset(test_dataset, bestFeat, value)
-            cut_dataset = splitdataset(dataset, bestFeat, value)
-            for vec in cut_testset:
-                ans.append(vec[-1])
-            result_counter = Counter()
-            for vec in cut_dataset:
-                result_counter[vec[-1]] += 1
-            leaf_output = result_counter.most_common(1)[0][0]
-            outputs += [leaf_output] * len(cut_testset)
-        cut_acc = cal_acc(test_output=outputs, label=ans)
-
-        if cut_acc <= root_acc:
-            return leaf_output
 
     for value in uniqueVals:
         subLabels = labels[:]
         ID3Tree[bestFeatLabel][value] = ID3_createTree(
             splitdataset(dataset, bestFeat, value),
             subLabels,
-            splitdataset(test_dataset, bestFeat, value))
-
-    if post_pruning:
-        tree_output = classifytest(ID3Tree,
-                                   featLabels=['年龄段', '有工作', '有自己的房子', '信贷情况'],
-                                   testDataSet=test_dataset)
-        ans = []
-        for vec in test_dataset:
-            ans.append(vec[-1])
-        root_acc = cal_acc(tree_output, ans)
-        result_counter = Counter()
-        for vec in dataset:
-            result_counter[vec[-1]] += 1
-        leaf_output = result_counter.most_common(1)[0][0]
-        cut_acc = cal_acc([leaf_output] * len(test_dataset), ans)
-
-        if cut_acc >= root_acc:
-            return leaf_output
+            n_features)
 
     return ID3Tree
 
+# Modified ID3_chooseBestFeatureToSplit function
+def ID3_chooseBestFeatureToSplit(dataset, feature_indices):
+    baseEnt = cal_entropy(dataset)
+    bestInfoGain = 0.0
+    bestFeature = -1
+    for i in feature_indices:
+        featList = [example[i] for example in dataset]
+        uniqueVals = set(featList)
+        newEnt = 0.0
+        for value in uniqueVals:
+            subdataset = splitdataset(dataset, i, value)
+            p = len(subdataset) / float(len(dataset))
+            newEnt += p * cal_entropy(subdataset)
+        infoGain = baseEnt - newEnt
+        if (infoGain > bestInfoGain):
+            bestInfoGain = infoGain
+            bestFeature = i
+    return bestFeature
+
+# New function for Random Forest prediction
+def random_forest_predict(forest, featLabels, testVec):
+    predictions = [classify(tree, featLabels, testVec) for tree in forest]
+    return max(set(predictions), key=predictions.count)
+
+# Modified classifytest function for Random Forest
+def classifytest_rf(forest, featLabels, testDataSet):
+    classLabelAll = []
+    for testVec in testDataSet:
+        classLabelAll.append(random_forest_predict(forest, featLabels, testVec))
+    return classLabelAll
 
 def classify(inputTree, featLabels, testVec):
     """
@@ -351,20 +354,21 @@ if __name__ == '__main__':
     print("Ent(D):", cal_entropy(dataset))
     print("---------------------------------------------")
 
-    print(u"以下为首次寻找最优索引:\n")
-    print(u"ID3算法的最优特征索引为:" + str(ID3_chooseBestFeatureToSplit(dataset)))
-    print(u"首次寻找最优索引结束！")
-    print("---------------------------------------------")
+    print(u"下面开始创建随机森林-------")
 
-    print(u"下面开始创建相应的决策树-------")
-
-    labels_tmp = labels[:]  # 拷贝，createTree会改变labels
-    ID3desicionTree = ID3_createTree(dataset, labels_tmp, test_dataset=read_testset(testfile))
-    print('ID3desicionTree:\n', ID3desicionTree)
-    ID3_Tree(ID3desicionTree)
+    labels_tmp = labels[:]
+    forest = random_forest(dataset, labels_tmp, n_trees=10)
+    print(f'Random Forest created with {len(forest)} trees')
+    
     testSet = read_testset(testfile)
     print("---------------------------------------------")
-    print("下面为 ID3_TestSet_classifyResult：")
-    print(classifytest(ID3desicionTree, labels, testSet))
+    print("下面为 Random Forest TestSet classifyResult：")
+    rf_predictions = classifytest_rf(forest, labels, testSet)
+    print(rf_predictions)
     print("---------------------------------------------")
+
+    # Calculate accuracy
+    true_labels = [example[-1] for example in testSet]
+    accuracy = cal_acc(rf_predictions, true_labels)
+    print(f"Random Forest Accuracy: {accuracy:.2f}")
 
