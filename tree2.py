@@ -358,16 +358,13 @@ if __name__ == '__main__':
 
     print(u"下面开始创建相应的决策树-------")
 
-    while True:
+    labels_tmp = labels[:]  # 拷贝，createTree会改变labels
+    ID3desicionTree = ID3_createTree(dataset, labels_tmp, test_dataset=read_testset(testfile))
+    print('ID3desicionTree:\n', ID3desicionTree)
+    ID3_Tree(ID3desicionTree)
+    testSet = read_testset(testfile)
+    print("---------------------------------------------")
+    print("下面为 ID3_TestSet_classifyResult：")
+    print(classifytest(ID3desicionTree, labels, testSet))
+    print("---------------------------------------------")
 
-        labels_tmp = labels[:]  # 拷贝，createTree会改变labels
-        ID3desicionTree = ID3_createTree(dataset, labels_tmp, test_dataset=read_testset(testfile))
-        print('ID3desicionTree:\n', ID3desicionTree)
-        ID3_Tree(ID3desicionTree)
-        testSet = read_testset(testfile)
-        print("---------------------------------------------")
-        print("下面为 ID3_TestSet_classifyResult：")
-        print(classifytest(ID3desicionTree, labels, testSet))
-        print("---------------------------------------------")
-
-        break
