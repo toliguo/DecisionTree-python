@@ -314,14 +314,14 @@ if __name__ == '__main__':
     print(u"下面开始创建随机森林-------")
 
     labels_tmp = labels[:]
-    random_forest = random_forest(dataset, labels_tmp, n_trees=5, n_features=2)
+    random_forest_tree = random_forest(dataset, labels_tmp, n_trees=5, n_features=2)
     print('Random Forest created')
-    plot_random_forest(random_forest)
+    plot_random_forest(random_forest_tree)
 
     testSet = read_testset(testfile)
     print("---------------------------------------------")
     print("下面为 RandomForest_TestSet_classifyResult：")
-    predictions = classifytest(random_forest, labels, testSet)
+    predictions = classifytest(random_forest_tree, labels, testSet)
     print(predictions)
 
     actual_labels = [example[-1] for example in testSet]
