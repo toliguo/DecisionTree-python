@@ -256,6 +256,28 @@ def cal_acc(test_output, label):
 
     return float(count / len(test_output))
 
+# 随机森林的最优特征索引计算函数
+def RF_chooseBestFeatureToSplit(dataset, n_features=2):
+    numFeatures = len(dataset[0]) - 1
+    features = random.sample(range(numFeatures), min(n_features, numFeatures))
+    bestGini = 999999.0
+    bestFeature = -1
+    
+    for i in features:
+        featList = [example[i] for example in dataset]
+        uniqueVals = set(featList)
+        gini = 0.0
+        for value in uniqueVals:
+            subdataset = splitdataset(dataset, i, value)
+            p = len(subdataset) / float(len(dataset))
+            subp = len(splitdataset(subdataset, -1, '0')) / float(len(subdataset))
+            gini += p * (1.0 - pow(subp, 2) - pow(1 - subp, 2))
+        print(u"随机森林中第%d个特征的基尼值为：%.3f" % (i, gini))
+        if (gini < bestGini):
+            bestGini = gini
+            bestFeature = i
+    
+    return bestFeature
 
 def plot_random_forest(forest):
     n_trees = len(forest)

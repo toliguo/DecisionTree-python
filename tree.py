@@ -4,7 +4,7 @@ from math import log
 import operator
 
 from collections import Counter, defaultdict
-
+from tree_rf import *
 pre_pruning = True
 post_pruning = True
 
@@ -574,13 +574,15 @@ if __name__ == '__main__':
     print(u"数据集长度", len(dataset))
     print("Ent(D):", cal_entropy(dataset))
     print("---------------------------------------------")
-
     print(u"以下为首次寻找最优索引:\n")
     print(u"ID3算法的最优特征索引为:" + str(ID3_chooseBestFeatureToSplit(dataset)))
     print("--------------------------------------------------")
     print(u"C4.5算法的最优特征索引为:" + str(C45_chooseBestFeatureToSplit(dataset)))
     print("--------------------------------------------------")
     print(u"CART算法的最优特征索引为:" + str(CART_chooseBestFeatureToSplit(dataset)))
+    print("--------------------------------------------------")
+    print(u"随机森林算法的最优特征索引为:" + str(RF_chooseBestFeatureToSplit(dataset)))
+    print("---------------------------------------------")
     print(u"首次寻找最优索引结束！")
     print("---------------------------------------------")
 
@@ -635,8 +637,6 @@ if __name__ == '__main__':
 
         # 随机森林
         if dec_tree == '4':
-            from tree_rf import *
-
             labels_tmp = labels[:]
             random_forest = random_forest(dataset, labels_tmp, n_trees=5, n_features=2)
             print('RandomForestTree:\n', random_forest)
