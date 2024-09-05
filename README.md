@@ -3,6 +3,7 @@
 ### 依赖安装
 ```shell
 pip install matplotlib
+pip install scikit-learn
 ```
 
 ### 决策树分类

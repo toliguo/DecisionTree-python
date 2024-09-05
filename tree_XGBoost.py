@@ -8,6 +8,8 @@ import random
 import matplotlib.pyplot as plt
 from pylab import mpl
 import matplotlib.font_manager as fm
+import numpy as np
+from sklearn.tree import DecisionTreeRegressor
 
 font_path = './SimHei.ttf'
 fm.fontManager.addfont(font_path)
@@ -94,7 +96,8 @@ def read_dataset(filename):
     for line in all_lines[0:]:
         line = line.strip().split(',')  # 以逗号为分割符拆分列表
         dataset.append(line)
-    return dataset, labels
+    dataset = np.array(dataset, dtype=float)
+    return dataset[:, :-1], dataset[:, -1], labels
 
 
 def read_testset(testfile):
@@ -111,7 +114,8 @@ def read_testset(testfile):
     for line in all_lines[0:]:
         line = line.strip().split(',')  # 以逗号为分割符拆分列表
         testset.append(line)
-    return testset
+    testset = np.array(testset, dtype=float)
+    return testset[:, :-1], testset[:, -1]
 
 
 # 计算信息熵
@@ -242,19 +246,9 @@ def classifytest(forest, featLabels, testDataSet):
     return predictions
 
 
-def cal_acc(test_output, label):
-    """
-    :param test_output: the output of testset
-    :param label: the answer
-    :return: the acc of
-    """
-    assert len(test_output) == len(label)
-    count = 0
-    for index in range(len(test_output)):
-        if test_output[index] == label[index]:
-            count += 1
+def cal_acc(predictions, labels):
+    return np.mean(predictions.round() == labels)
 
-    return float(count / len(test_output))
 
 # 随机森林的最优特征索引计算函数
 def RF_chooseBestFeatureToSplit(dataset, n_features=2):
@@ -279,52 +273,85 @@ def RF_chooseBestFeatureToSplit(dataset, n_features=2):
     
     return bestFeature
 
-def plot_random_forest(forest):
-    n_trees = len(forest)
-    fig, axes = plt.subplots(1, n_trees, figsize=(5 * n_trees, 5), squeeze=False)
-    fig.suptitle("随机森林决策树", fontsize=16, color='red')
 
-    for i, tree in enumerate(forest):
-        ax = axes[0, i]
-        ax.set_title(f"树 {i + 1}")
-        plotTree.totalw = float(getNumLeafs(tree))
-        plotTree.totalD = float(getTreeDepth(tree))
-        plotTree.xOff = -0.5 / plotTree.totalw
-        plotTree.yOff = 1.0
-        plotTree(tree, (0.5, 1.0), '', ax)
-        ax.set_axis_off()
+# XGBoost树实现
+class XGBoostTree:
+    def __init__(self, max_depth=3, learning_rate=0.1):
+        self.tree = DecisionTreeRegressor(max_depth=max_depth)
+        self.learning_rate = learning_rate
 
+    def fit(self, X, y, sample_weight=None):
+        self.tree.fit(X, y, sample_weight=sample_weight)
+
+    def predict(self, X):
+        return self.tree.predict(X) * self.learning_rate
+
+
+# XGBoost算法实现
+class XGBoost:
+    def __init__(self, n_estimators=10, max_depth=3, learning_rate=0.1):
+        self.n_estimators = n_estimators
+        self.max_depth = max_depth
+        self.learning_rate = learning_rate
+        self.trees = []
+
+    def fit(self, X, y):
+        self.base_score = np.mean(y)
+        F = np.full(len(y), self.base_score)
+        
+        for _ in range(self.n_estimators):
+            residuals = y - F
+            tree = XGBoostTree(max_depth=self.max_depth, learning_rate=self.learning_rate)
+            tree.fit(X, residuals)
+            self.trees.append(tree)
+            F += tree.predict(X)
+
+    def predict(self, X):
+        predictions = np.full(len(X), self.base_score)
+        for tree in self.trees:
+            predictions += tree.predict(X)
+        return predictions
+
+
+# 绘制XGBoost模型的特征重要性
+def plot_feature_importance(xgb_model, feature_names):
+    importances = np.sum([tree.tree.feature_importances_ for tree in xgb_model.trees], axis=0)
+    indices = np.argsort(importances)[::-1]
+
+    plt.figure(figsize=(10, 6))
+    plt.title("XGBoost - 特征重要性")
+    plt.bar(range(len(importances)), importances[indices])
+    plt.xticks(range(len(importances)), [feature_names[i] for i in indices], rotation=45)
     plt.tight_layout()
-    plt.savefig('pic_results/figure_RandomForest.png')
+    plt.savefig('pic_results/figure_XGBoost_FeatureImportance.png')
     print("---------------------------------------------")
-    print("png saved: pic_results/figure_RandomForest.png")
+    print("png saved: pic_results/figure_XGBoost_FeatureImportance.png")
 
 
 if __name__ == '__main__':
     filename = 'dataset.txt'
     testfile = 'testset.txt'
-    dataset, labels = read_dataset(filename)
+    X, y, labels = read_dataset(filename)
 
-    print('dataset', dataset)
+    print('dataset shape:', X.shape)
     print("---------------------------------------------")
-    print(u"数据集长度", len(dataset))
-    print("Ent(D):", cal_entropy(dataset))
+    print(u"数据集长度", len(X))
     print("---------------------------------------------")
 
-    print(u"下面开始创建随机森林-------")
+    print(u"下面开始创建XGBoost模型-------")
 
-    labels_tmp = labels[:]
-    random_forest_tree = random_forest(dataset, labels_tmp, n_trees=5, n_features=2)
-    print('Random Forest created')
-    plot_random_forest(random_forest_tree)
+    xgb_model = XGBoost(n_estimators=5, max_depth=3, learning_rate=0.1)
+    xgb_model.fit(X, y)
+    print('XGBoost model created')
 
-    testSet = read_testset(testfile)
+    plot_feature_importance(xgb_model, labels)
+
+    X_test, y_test = read_testset(testfile)
     print("---------------------------------------------")
-    print("下面为 RandomForest_TestSet_classifyResult：")
-    predictions = classifytest(random_forest_tree, labels, testSet)
-    print(predictions)
+    print("下面为 XGBoost_TestSet_classifyResult：")
+    predictions = xgb_model.predict(X_test)
+    print(predictions.round())
 
-    actual_labels = [example[-1] for example in testSet]
-    accuracy = cal_acc(predictions, actual_labels)
-    print(f"随机森林准确率: {accuracy:.2f}")
+    accuracy = cal_acc(predictions, y_test)
+    print(f"XGBoost准确率: {accuracy:.2f}")
     print("---------------------------------------------")
