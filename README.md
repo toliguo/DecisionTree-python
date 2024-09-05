@@ -2,6 +2,7 @@
 
 ### 依赖安装
 ```shell
+pip install pandas
 pip install matplotlib
 pip install scikit-learn
 ```
@@ -19,7 +20,7 @@ python tree.py 1
 python tree.py 2
 ```
 
-####  (3) CART算法使用“基尼指数”来选择划分属性，选择基尼值最小的属性作为划分属性.<br>
+####  (3) CHAID（Chi-squared Automatic Interaction Detection）是一种基于卡方检验的决策树算法，主要用于分类问题。它与其他决策树算法的不同之处在于，CHAID在选择最佳划分特征时使用了卡方检验来评估特征的统计显著性。<br>
 ```shell
 python tree.py 3
 ```
@@ -63,14 +64,14 @@ python tree.py 4
 ![image](pic_results/C4.5.png)
 ![image](pic_results/figure_C4.5.png)
 
-##### CART算法：
-![image](pic_results/CART.png)
-![image](pic_results/figure_CART.png)
+##### CHAID算法：
+![image](pic_results/CHAID.png)
+![image](pic_results/figure_CHAID.png)
 
 ##### 随机森林算法：
 ![image](pic_results/RandomForest.png)
 ![image](pic_results/figure_RandomForest.png)
 
 #### 由上面结果可以看出：
-##### （1）ID3和C4.5的最优索引以及决策树形图是相同的，而CART的最优索引以及决策树形图与前面两者不同，这与它们的选择标准以及训练集有关；
-##### （2）但同时我们也发现，4种算法对测试集的测试结果是相同的，经过后期手动匹配，结果完全正确，这说明我们的决策树实验结果是正确的。
+##### （1）ID3和C4.5的最优索引以及决策树形图是相同的；
+##### （2）4种算法对测试集的测试结果是相同的，经过后期手动匹配，结果完全正确，这说明我们的决策树实验结果是正确的。

@@ -565,6 +565,32 @@ def cal_acc(test_output, label):
 
     return float(count / len(test_output))
 
+import pandas as pd
+from scipy.stats import chi2_contingency
+import numpy as np
+
+def CHAID_chooseBestFeatureToSplit(dataset):
+    numFeatures = len(dataset[0]) - 1
+    bestChiSquare = 0.0
+    bestFeature = -1
+
+    for i in range(numFeatures):
+        featList = [example[i] for example in dataset]
+        targetList = [example[-1] for example in dataset]
+
+        # Create contingency table
+        contingency_table = np.array(pd.crosstab(featList, targetList))
+
+        # Perform chi-square test
+        chi2, p_value, dof, expected = chi2_contingency(contingency_table)
+
+        print(f"CHAID中第{i}个特征的卡方值为：{chi2:.3f}, p值为：{p_value:.3f}")
+
+        if chi2 > bestChiSquare:
+            bestChiSquare = chi2
+            bestFeature = i
+
+    return bestFeature
 
 if __name__ == '__main__':
     filename = 'dataset.txt'
@@ -581,7 +607,7 @@ if __name__ == '__main__':
     print("--------------------------------------------------")
     print(u"C4.5算法的最优特征索引为:" + str(C45_chooseBestFeatureToSplit(dataset)))
     print("--------------------------------------------------")
-    print(u"CART算法的最优特征索引为:" + str(CART_chooseBestFeatureToSplit(dataset)))
+    print(u"CHAID算法的最优特征索引为:" + str(CHAID_chooseBestFeatureToSplit(dataset)))
     print("--------------------------------------------------")
     from tree_rf import RF_chooseBestFeatureToSplit
     print(u"随机森林算法的最优特征索引为:" + str(RF_chooseBestFeatureToSplit(dataset)))
@@ -643,7 +669,7 @@ if __name__ == '__main__':
             from tree_CHAID import *
             labels_tmp = labels[:]
             chaid_tree = CHAID(dataset, labels_tmp)
-            print('CHAID Tree created')
+            print('CHAIDTree:\n', chaid_tree)
             plot_CHAID_tree(chaid_tree)
 
             testSet = read_testset(testfile)
