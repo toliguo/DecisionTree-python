@@ -5,8 +5,6 @@ import operator
 
 from collections import Counter, defaultdict
 
-from tree3 import random_forest, classifytest_rf
-
 pre_pruning = True
 post_pruning = True
 
@@ -637,21 +635,21 @@ if __name__ == '__main__':
 
         # 随机森林
         if dec_tree == '4':
+            from tree_rf import *
+
             labels_tmp = labels[:]
-            forest = random_forest(dataset, labels_tmp, n_trees=10)
-            print('Random ForestTree:\n', forest)
-            print(f'Random Forest created with {len(forest)} trees')
+            random_forest = random_forest(dataset, labels_tmp, n_trees=5, n_features=2)
+            plot_random_forest(random_forest)
 
             testSet = read_testset(testfile)
             print("---------------------------------------------")
-            print("下面为 Random Forest TestSet classifyResult：")
-            rf_predictions = classifytest_rf(forest, labels, testSet)
-            print(rf_predictions)
-            print("---------------------------------------------")
+            print("下面为 RandomForest_TestSet_classifyResult：")
+            predictions = classifytest(random_forest, labels, testSet)
+            print(predictions)
 
-            # Calculate accuracy
-            true_labels = [example[-1] for example in testSet]
-            accuracy = cal_acc(rf_predictions, true_labels)
-            print(f"Random Forest Accuracy: {accuracy:.2f}")
+            # actual_labels = [example[-1] for example in testSet]
+            # accuracy = cal_acc(predictions, actual_labels)
+            # print(f"随机森林准确率: {accuracy:.2f}")
+            print("---------------------------------------------")
 
         break
