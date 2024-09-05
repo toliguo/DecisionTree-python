@@ -3,7 +3,6 @@
 import matplotlib.pyplot as plt
 from pylab import mpl
 import matplotlib.font_manager as fm
-import warnings
 
 font_path = './SimHei.ttf'
 fm.fontManager.addfont(font_path)

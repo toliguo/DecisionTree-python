@@ -5,8 +5,6 @@ import operator
 import treePlotter
 from collections import Counter
 
-import matplotlib.pyplot as plt
-
 pre_pruning = True
 post_pruning = True
 
@@ -454,6 +452,7 @@ if __name__ == '__main__':
 
     while True:
         import sys
+
         args = sys.argv[1:]
         dec_tree = '1'
         if len(args) == 1:

@@ -1,5 +1,10 @@
 # Decision Tree
 
+### 依赖安装
+```shell
+pip install matplotlib
+```
+
 ### 决策树分类（ID3，C4.5，CART）
 ### 三种算法的区别如下：
 
