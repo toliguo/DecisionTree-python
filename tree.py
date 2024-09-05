@@ -574,13 +574,16 @@ if __name__ == '__main__':
     print(u"数据集长度", len(dataset))
     print("Ent(D):", cal_entropy(dataset))
     print("---------------------------------------------")
-
     print(u"以下为首次寻找最优索引:\n")
     print(u"ID3算法的最优特征索引为:" + str(ID3_chooseBestFeatureToSplit(dataset)))
     print("--------------------------------------------------")
     print(u"C4.5算法的最优特征索引为:" + str(C45_chooseBestFeatureToSplit(dataset)))
     print("--------------------------------------------------")
     print(u"CART算法的最优特征索引为:" + str(CART_chooseBestFeatureToSplit(dataset)))
+    print("--------------------------------------------------")
+    from tree_rf import RF_chooseBestFeatureToSplit
+    print(u"随机森林算法的最优特征索引为:" + str(RF_chooseBestFeatureToSplit(dataset)))
+    print("---------------------------------------------")
     print(u"首次寻找最优索引结束！")
     print("---------------------------------------------")
 
