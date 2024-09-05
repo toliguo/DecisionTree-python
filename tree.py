@@ -5,6 +5,8 @@ import operator
 
 from collections import Counter, defaultdict
 
+from tree3 import random_forest, classifytest_rf
+
 pre_pruning = True
 post_pruning = True
 
@@ -594,8 +596,8 @@ if __name__ == '__main__':
         if len(args) == 1:
             dec_tree = args[0]
 
-        if dec_tree not in ['1', '2', '3']:
-            raise ValueError('Param must be 1, 2, 3')
+        if dec_tree not in ['1', '2', '3', '4']:
+            raise ValueError('Param must be 1, 2, 3, 4')
 
         # ID3决策树
         if dec_tree == '1':
@@ -632,5 +634,24 @@ if __name__ == '__main__':
             print("下面为 CART_TestSet_classifyResult:")
             print(classifytest(CARTdesicionTree, labels, testSet))
             print("---------------------------------------------")
+
+        # 随机森林
+        if dec_tree == '4':
+            labels_tmp = labels[:]
+            forest = random_forest(dataset, labels_tmp, n_trees=10)
+            print('Random ForestTree:\n', forest)
+            print(f'Random Forest created with {len(forest)} trees')
+
+            testSet = read_testset(testfile)
+            print("---------------------------------------------")
+            print("下面为 Random Forest TestSet classifyResult：")
+            rf_predictions = classifytest_rf(forest, labels, testSet)
+            print(rf_predictions)
+            print("---------------------------------------------")
+
+            # Calculate accuracy
+            true_labels = [example[-1] for example in testSet]
+            accuracy = cal_acc(rf_predictions, true_labels)
+            print(f"Random Forest Accuracy: {accuracy:.2f}")
 
         break
