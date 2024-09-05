@@ -339,85 +339,7 @@ def cal_acc(test_output, label):
 
     return float(count / len(test_output))
 
-# ... (保留之前的导入语句和辅助函数) ...
 
-import random
-
-# 新增：计算条件熵
-def cal_conditional_entropy(dataset, i):
-    featList = [example[i] for example in dataset]
-    uniqueVals = set(featList)
-    condEntropy = 0.0
-    for value in uniqueVals:
-        subdataset = splitdataset(dataset, i, value)
-        prob = len(subdataset) / float(len(dataset))
-        condEntropy += prob * cal_entropy(subdataset)
-    return condEntropy
-
-# 新增：创建随机子集
-def create_random_subset(dataset, subset_size):
-    return random.sample(dataset, subset_size)
-
-# 新增：创建随机特征子集
-def create_random_feature_subset(features, num_features):
-    return random.sample(features, num_features)
-
-# 修改：随机森林的决策树创建函数
-def RF_createTree(dataset, labels, test_dataset, num_features):
-    classList = [example[-1] for example in dataset]
-    if classList.count(classList[0]) == len(classList):
-        return classList[0]
-    if len(dataset[0]) == 1:
-        return majorityCnt(classList)
-    
-    # 随机选择特征子集
-    available_features = list(range(len(dataset[0]) - 1))
-    feature_subset = create_random_feature_subset(available_features, num_features)
-    
-    bestFeat = -1
-    bestInfoGain = -1
-    for feat in feature_subset:
-        infoGain = cal_entropy(dataset) - cal_conditional_entropy(dataset, feat)
-        if infoGain > bestInfoGain:
-            bestInfoGain = infoGain
-            bestFeat = feat
-    
-    bestFeatLabel = labels[bestFeat]
-    RFTree = {bestFeatLabel: {}}
-    
-    featValues = [example[bestFeat] for example in dataset]
-    uniqueVals = set(featValues)
-    
-    for value in uniqueVals:
-        subLabels = labels[:]
-        RFTree[bestFeatLabel][value] = RF_createTree(
-            splitdataset(dataset, bestFeat, value),
-            subLabels,
-            splitdataset(test_dataset, bestFeat, value),
-            num_features
-        )
-    
-    return RFTree
-
-# 新增：创建随机森林
-def create_random_forest(dataset, labels, test_dataset, num_trees, subset_size, num_features):
-    forest = []
-    for _ in range(num_trees):
-        subset = create_random_subset(dataset, subset_size)
-        tree = RF_createTree(subset, labels[:], test_dataset, num_features)
-        forest.append(tree)
-    return forest
-
-# 新增：随机森林分类
-def random_forest_classify(forest, featLabels, testVec):
-    predictions = [classify(tree, featLabels, testVec) for tree in forest]
-    return max(set(predictions), key=predictions.count)
-
-# 新增：随机森林测试集分类
-def random_forest_classifytest(forest, featLabels, testDataSet):
-    return [random_forest_classify(forest, featLabels, testVec) for testVec in testDataSet]
-
-# 修改主函数
 if __name__ == '__main__':
     filename = 'dataset.txt'
     testfile = 'testset.txt'
@@ -429,23 +351,23 @@ if __name__ == '__main__':
     print("Ent(D):", cal_entropy(dataset))
     print("---------------------------------------------")
 
-    print(u"下面开始创建随机森林-------")
-
-    # 随机森林参数
-    num_trees = 10  # 树的数量
-    subset_size = int(len(dataset) * 0.8)  # 子集大小
-    num_features = int(len(dataset[0]) * 0.7)  # 特征子集大小
-
-    random_forest = create_random_forest(dataset, labels[:], read_testset(testfile), num_trees, subset_size, num_features)
-    
-    testSet = read_testset(testfile)
+    print(u"以下为首次寻找最优索引:\n")
+    print(u"ID3算法的最优特征索引为:" + str(ID3_chooseBestFeatureToSplit(dataset)))
+    print(u"首次寻找最优索引结束！")
     print("---------------------------------------------")
-    print("下面为随机森林测试集分类结果：")
-    rf_predictions = random_forest_classifytest(random_forest, labels, testSet)
-    print(rf_predictions)
-    
-    # 计算准确率
-    actual_labels = [example[-1] for example in testSet]
-    accuracy = cal_acc(rf_predictions, actual_labels)
-    print(f"随机森林准确率: {accuracy:.2f}")
-    print("---------------------------------------------")
+
+    print(u"下面开始创建相应的决策树-------")
+
+    while True:
+
+        labels_tmp = labels[:]  # 拷贝，createTree会改变labels
+        ID3desicionTree = ID3_createTree(dataset, labels_tmp, test_dataset=read_testset(testfile))
+        print('ID3desicionTree:\n', ID3desicionTree)
+        ID3_Tree(ID3desicionTree)
+        testSet = read_testset(testfile)
+        print("---------------------------------------------")
+        print("下面为 ID3_TestSet_classifyResult：")
+        print(classifytest(ID3desicionTree, labels, testSet))
+        print("---------------------------------------------")
+
+        break
