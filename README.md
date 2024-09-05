@@ -66,6 +66,10 @@ python tree.py 4
 ![image](pic_results/CART.png)
 ![image](pic_results/figure_CART.png)
 
+##### 随机森林算法：
+![image](pic_results/RandomForest.png)
+![image](pic_results/figure_RandomForest.png)
+
 #### 由上面结果可以看出：
 ##### （1）ID3和C4.5的最优索引以及决策树形图是相同的，而CART的最优索引以及决策树形图与前面两者不同，这与它们的选择标准以及训练集有关；
 ##### （2）但同时我们也发现，三种算法对测试集的测试结果是相同的，经过后期手动匹配，结果完全正确，这说明我们的决策树实验结果是正确的。

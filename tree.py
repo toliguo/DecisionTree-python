@@ -639,6 +639,7 @@ if __name__ == '__main__':
 
             labels_tmp = labels[:]
             random_forest = random_forest(dataset, labels_tmp, n_trees=5, n_features=2)
+            print('RandomForestTree:\n', random_forest)
             plot_random_forest(random_forest)
 
             testSet = read_testset(testfile)
