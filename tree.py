@@ -581,7 +581,8 @@ if __name__ == '__main__':
     print("--------------------------------------------------")
     print(u"CART算法的最优特征索引为:" + str(CART_chooseBestFeatureToSplit(dataset)))
     print("--------------------------------------------------")
-    # print(u"随机森林算法的最优特征索引为:" + str(RF_chooseBestFeatureToSplit(dataset)))
+    from tree_rf import RF_chooseBestFeatureToSplit
+    print(u"随机森林算法的最优特征索引为:" + str(RF_chooseBestFeatureToSplit(dataset)))
     print("---------------------------------------------")
     print(u"首次寻找最优索引结束！")
     print("---------------------------------------------")
@@ -637,7 +638,7 @@ if __name__ == '__main__':
 
         # 随机森林
         if dec_tree == '4':
-            from tree_rf import random_forest, plot_random_forest
+            from tree_rf import *
 
             labels_tmp = labels[:]
             random_forest = random_forest(dataset, labels_tmp, n_trees=5, n_features=2)
