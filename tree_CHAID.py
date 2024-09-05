@@ -156,63 +156,61 @@ def majorityCnt(classList):
     return sortedClassCont[0][0]
 
 
-def bootstrap_sample(dataset):
-    n_samples = len(dataset)
-    return [dataset[random.randint(0, n_samples - 1)] for _ in range(n_samples)]
+def chi_square_test(dataset, feature_index):
+    # 计算卡方值
+    observed = Counter((example[feature_index], example[-1]) for example in dataset)
+    classes = set(example[-1] for example in dataset)
+    feature_values = set(example[feature_index] for example in dataset)
+    
+    expected = {}
+    for value in feature_values:
+        for cls in classes:
+            row_total = sum(observed[(value, c)] for c in classes)
+            col_total = sum(observed[(v, cls)] for v in feature_values)
+            total = len(dataset)
+            expected[(value, cls)] = (row_total * col_total) / total
 
+    chi_square = sum((observed[(value, cls)] - expected[(value, cls)]) ** 2 / expected[(value, cls)]
+                     for value in feature_values for cls in classes if expected[(value, cls)] != 0)
+    
+    return chi_square
 
-def random_forest_tree(dataset, labels, n_features):
+def CHAID_tree(dataset, labels, alpha=0.05):
     classList = [example[-1] for example in dataset]
     if classList.count(classList[0]) == len(classList):
         return classList[0]
     if len(dataset[0]) == 1:
         return majorityCnt(classList)
 
-    # 修改这里：确保 n_features 不大于可用特征数量
-    n_available_features = len(dataset[0]) - 1
-    n_features = min(n_features, n_available_features)
-
-    feature_indices = random.sample(range(n_available_features), n_features)
-    best_gain = 0
     best_feature = -1
-    for i in feature_indices:
-        featList = [example[i] for example in dataset]
-        uniqueVals = set(featList)
-        new_entropy = 0.0
-        for value in uniqueVals:
-            subdataset = splitdataset(dataset, i, value)
-            prob = len(subdataset) / float(len(dataset))
-            new_entropy += prob * cal_entropy(subdataset)
-        info_gain = cal_entropy(dataset) - new_entropy
-        if info_gain > best_gain:
-            best_gain = info_gain
+    best_chi_square = 0
+    for i in range(len(dataset[0]) - 1):
+        chi_square = chi_square_test(dataset, i)
+        if chi_square > best_chi_square:
+            best_chi_square = chi_square
             best_feature = i
+
+    # 使用scipy库计算p值
+    from scipy.stats import chi2
+    p_value = 1 - chi2.cdf(best_chi_square, (len(set(example[best_feature] for example in dataset)) - 1) * (len(set(classList)) - 1))
+
+    if p_value > alpha:
+        return majorityCnt(classList)
 
     best_feat_label = labels[best_feature]
     tree = {best_feat_label: {}}
-    del (labels[best_feature])
+    del(labels[best_feature])
 
     feat_values = [example[best_feature] for example in dataset]
     unique_vals = set(feat_values)
     for value in unique_vals:
         sub_labels = labels[:]
-        tree[best_feat_label][value] = random_forest_tree(splitdataset(dataset, best_feature, value), sub_labels,
-                                                          n_features)
+        tree[best_feat_label][value] = CHAID_tree(splitdataset(dataset, best_feature, value), sub_labels, alpha)
 
     return tree
 
-
-def random_forest(dataset, labels, n_trees=10, n_features=2):
-    # 确保 n_features 不大于可用特征数量
-    n_features = min(n_features, len(dataset[0]) - 1)
-
-    forest = []
-    for _ in range(n_trees):
-        bootstrap_data = bootstrap_sample(dataset)
-        tree = random_forest_tree(bootstrap_data, labels[:], n_features)
-        forest.append(tree)
-    return forest
-
+def CHAID(dataset, labels, alpha=0.05):
+    return CHAID_tree(dataset, labels[:], alpha)
 
 def classify(inputTree, featLabels, testVec):
     """
@@ -256,48 +254,21 @@ def cal_acc(test_output, label):
 
     return float(count / len(test_output))
 
-# 随机森林的最优特征索引计算函数
-def RF_chooseBestFeatureToSplit(dataset, n_features=2):
-    numFeatures = len(dataset[0]) - 1
-    features = random.sample(range(numFeatures), min(n_features, numFeatures))
-    bestGini = 999999.0
-    bestFeature = -1
-    
-    for i in features:
-        featList = [example[i] for example in dataset]
-        uniqueVals = set(featList)
-        gini = 0.0
-        for value in uniqueVals:
-            subdataset = splitdataset(dataset, i, value)
-            p = len(subdataset) / float(len(dataset))
-            subp = len(splitdataset(subdataset, -1, '0')) / float(len(subdataset))
-            gini += p * (1.0 - pow(subp, 2) - pow(1 - subp, 2))
-        print(u"随机森林中第%d个特征的基尼值为：%.3f" % (i, gini))
-        if (gini < bestGini):
-            bestGini = gini
-            bestFeature = i
-    
-    return bestFeature
+def plot_CHAID_tree(tree):
+    fig, ax = plt.subplots(figsize=(15, 10))
+    fig.suptitle("CHAID决策树", fontsize=16, color='red')
 
-def plot_random_forest(forest):
-    n_trees = len(forest)
-    fig, axes = plt.subplots(1, n_trees, figsize=(5 * n_trees, 5), squeeze=False)
-    fig.suptitle("随机森林决策树", fontsize=16, color='red')
-
-    for i, tree in enumerate(forest):
-        ax = axes[0, i]
-        ax.set_title(f"树 {i + 1}")
-        plotTree.totalw = float(getNumLeafs(tree))
-        plotTree.totalD = float(getTreeDepth(tree))
-        plotTree.xOff = -0.5 / plotTree.totalw
-        plotTree.yOff = 1.0
-        plotTree(tree, (0.5, 1.0), '', ax)
-        ax.set_axis_off()
+    plotTree.totalw = float(getNumLeafs(tree))
+    plotTree.totalD = float(getTreeDepth(tree))
+    plotTree.xOff = -0.5 / plotTree.totalw
+    plotTree.yOff = 1.0
+    plotTree(tree, (0.5, 1.0), '', ax)
+    ax.set_axis_off()
 
     plt.tight_layout()
-    plt.savefig('pic_results/figure_RandomForest.png')
+    plt.savefig('pic_results/figure_CHAID.png')
     print("---------------------------------------------")
-    print("png saved: pic_results/figure_RandomForest.png")
+    print("png saved: pic_results/figure_CHAID.png")
 
 
 if __name__ == '__main__':
@@ -311,20 +282,20 @@ if __name__ == '__main__':
     print("Ent(D):", cal_entropy(dataset))
     print("---------------------------------------------")
 
-    print(u"下面开始创建随机森林-------")
+    print(u"下面开始创建CHAID决策树-------")
 
     labels_tmp = labels[:]
-    random_forest_tree = random_forest(dataset, labels_tmp, n_trees=5, n_features=2)
-    print('Random Forest created')
-    plot_random_forest(random_forest_tree)
+    chaid_tree = CHAID(dataset, labels_tmp)
+    print('CHAID Tree created')
+    plot_CHAID_tree(chaid_tree)
 
     testSet = read_testset(testfile)
     print("---------------------------------------------")
-    print("下面为 RandomForest_TestSet_classifyResult：")
-    predictions = classifytest(random_forest_tree, labels, testSet)
+    print("下面为 CHAID_TestSet_classifyResult：")
+    predictions = classifytest([chaid_tree], labels, testSet)
     print(predictions)
 
     actual_labels = [example[-1] for example in testSet]
     accuracy = cal_acc(predictions, actual_labels)
-    print(f"随机森林准确率: {accuracy:.2f}")
+    print(f"CHAID决策树准确率: {accuracy:.2f}")
     print("---------------------------------------------")

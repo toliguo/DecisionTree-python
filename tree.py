@@ -627,15 +627,34 @@ if __name__ == '__main__':
             print("---------------------------------------------")
 
         # CART决策树
+        # if dec_tree == '3':
+        #     labels_tmp = labels[:]  # 拷贝，createTree会改变labels
+        #     CARTdesicionTree = CART_createTree(dataset, labels_tmp, test_dataset=read_testset(testfile))
+        #     print('CARTdesicionTree:\n', CARTdesicionTree)
+        #     CART_Tree(CARTdesicionTree)
+        #     testSet = read_testset(testfile)
+        #     print("---------------------------------------------")
+        #     print("下面为 CART_TestSet_classifyResult:")
+        #     print(classifytest(CARTdesicionTree, labels, testSet))
+        #     print("---------------------------------------------")
+
+        # CHAID 决策树
         if dec_tree == '3':
-            labels_tmp = labels[:]  # 拷贝，createTree会改变labels
-            CARTdesicionTree = CART_createTree(dataset, labels_tmp, test_dataset=read_testset(testfile))
-            print('CARTdesicionTree:\n', CARTdesicionTree)
-            CART_Tree(CARTdesicionTree)
+            from tree_CHAID import *
+            labels_tmp = labels[:]
+            chaid_tree = CHAID(dataset, labels_tmp)
+            print('CHAID Tree created')
+            plot_CHAID_tree(chaid_tree)
+
             testSet = read_testset(testfile)
             print("---------------------------------------------")
-            print("下面为 CART_TestSet_classifyResult:")
-            print(classifytest(CARTdesicionTree, labels, testSet))
+            print("下面为 CHAID_TestSet_classifyResult：")
+            predictions = classifytest([chaid_tree], labels, testSet)
+            print(predictions)
+
+            actual_labels = [example[-1] for example in testSet]
+            accuracy = cal_acc(predictions, actual_labels)
+            print(f"CHAID决策树准确率: {accuracy:.2f}")
             print("---------------------------------------------")
 
         # 随机森林
